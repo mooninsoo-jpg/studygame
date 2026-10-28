@@ -1,0 +1,752 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>무역선 골드 대작전</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Jua&family=Gowun+Dodum&display=swap">
+<script>
+/* =====================================================================
+   ① 여기에 Firebase 설정을 붙여 넣으세요.
+   Firebase 콘솔 → 프로젝트 설정 → 내 앱(웹) → SDK 설정 및 구성 → "구성"
+   비워 두면 "연습 모드"로 열립니다(같은 컴퓨터의 여러 탭끼리만 연결).
+   ===================================================================== */
+// For Firebase JS SDK v7.20.0 and later, measurementId is optional
+const FIREBASE_CONFIG = {
+  apiKey: "AIzaSyDGKLOW06vOZ6m9h6JNgrkzCNmwicwPk1s",
+  authDomain: "mooninsoo-b13fc.firebaseapp.com",
+  projectId: "mooninsoo-b13fc",
+  storageBucket: "mooninsoo-b13fc.firebasestorage.app",
+  messagingSenderId: "862853251836",
+  appId: "1:862853251836:web:ba6a1aa856757bb50f4d79",
+  measurementId: "G-19KQ100Z1E"
+};</script>
+<style>
+/* Layout: harbor game — host screen is a projector board (PIN, leaderboard, ticker); student screen is a phone/tablet play card. Single light look. */
+:root{
+  --sky:#e6f1f5; --paper:#fbfdfd; --ink:#13293d; --ink-soft:#4b6275;
+  --sea:#1f5f8b; --sea-deep:#123f5e; --rust:#d9622b; --rust-dark:#a8461a;
+  --teal:#2a9d8f; --teal-dark:#1d7268; --mustard:#e9b44c; --line:#c9dbe3;
+  --good:#2a9d6f; --bad:#c8443a;
+  --t1:#2f7fd1; --t2:#e05a47; --t3:#2a9d6f; --t4:#e3a21a;
+  --font-display:"Jua","Gowun Dodum","Malgun Gothic",sans-serif;
+  --font-body:"Gowun Dodum","Malgun Gothic","Apple SD Gothic Neo",sans-serif;
+  color-scheme:light;
+}
+*{box-sizing:border-box}
+html,body{min-height:100%}
+body{margin:0;background:var(--sky);color:var(--ink);font-family:var(--font-body);font-size:17px;line-height:1.55;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:14px 32px;
+  background-image:repeating-linear-gradient(0deg,transparent 0 38px,rgba(31,95,139,.04) 38px 40px)}
+button,input{font-family:inherit}
+button{cursor:pointer}
+button:focus-visible,input:focus-visible{outline:3px solid var(--mustard);outline-offset:2px}
+[hidden]{display:none!important}
+.wrap{max-width:1100px;margin:0 auto;display:flex;flex-direction:column;gap:14px}
+h1,h2,h3{font-family:var(--font-display);font-weight:400;margin:0;line-height:1.25;text-wrap:balance}
+p{margin:0}
+.top{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:8px 16px}
+.brand{font-family:var(--font-display);font-size:clamp(22px,4vw,30px);color:var(--sea-deep)}
+.brand small{display:block;font-family:var(--font-body);font-size:13px;color:var(--ink-soft)}
+.pill{font-family:var(--font-display);background:var(--paper);border:2px solid var(--line);border-radius:999px;padding:4px 14px;font-size:18px;color:var(--sea-deep);font-variant-numeric:tabular-nums;white-space:nowrap}
+.demo{background:#fff4dc;border:2px dashed var(--mustard);border-radius:14px;padding:8px 14px;font-size:14px;color:#6b4d0b}
+.card{background:var(--paper);border:2px solid var(--line);border-radius:22px;padding:clamp(16px,3.5vw,32px);box-shadow:0 8px 0 rgba(19,41,61,.06);display:flex;flex-direction:column;gap:16px}
+.eyebrow{font-family:var(--font-display);color:var(--rust);font-size:16px;letter-spacing:1px}
+.lead{color:var(--ink-soft);font-size:clamp(16px,2.2vw,19px)}
+.btn{font-family:var(--font-display);font-size:21px;border:none;border-radius:16px;padding:13px 26px;color:#fff;background:var(--rust);box-shadow:0 5px 0 var(--rust-dark)}
+.btn:active{transform:translateY(4px);box-shadow:0 1px 0 var(--rust-dark)}
+.btn.alt{background:var(--teal);box-shadow:0 5px 0 var(--teal-dark)}
+.btn.ghost{background:#fff;color:var(--sea-deep);border:2px solid var(--line);box-shadow:0 5px 0 var(--line)}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+.row{display:flex;flex-wrap:wrap;gap:12px;align-items:center}
+.grid2{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}
+@media (max-width:640px){.grid2{grid-template-columns:1fr}}
+.role{border:3px solid var(--line);border-radius:20px;background:#fff;padding:22px;text-align:left;display:flex;flex-direction:column;gap:6px;min-width:0}
+.role:hover{border-color:var(--sea)}
+.role .em{font-size:44px}
+.role b{font-family:var(--font-display);font-weight:400;font-size:26px;color:var(--sea-deep)}
+.role span{color:var(--ink-soft)}
+label{font-family:var(--font-display);font-size:18px;color:var(--sea-deep)}
+.field{display:flex;flex-direction:column;gap:6px}
+input[type=text],input[type=tel]{font-size:24px;padding:12px 16px;border:3px solid var(--line);border-radius:14px;background:#fff;color:var(--ink);width:100%;max-width:360px}
+.pinin{letter-spacing:6px;font-family:var(--font-display)}
+.seg{display:flex;flex-wrap:wrap;gap:8px}
+.seg button{border:3px solid var(--line);background:#fff;border-radius:12px;padding:8px 14px;font-size:17px;color:var(--ink)}
+.seg button[aria-pressed=true]{border-color:var(--rust);background:#fff3ec;color:var(--rust-dark);font-weight:700}
+.avatars{display:flex;flex-wrap:wrap;gap:8px}
+.avatars button{font-size:32px;width:58px;height:58px;border-radius:14px;border:3px solid var(--line);background:#fff;line-height:1}
+.avatars button[aria-pressed=true]{border-color:var(--rust);background:#fff3ec}
+.err{color:var(--bad);font-size:16px;min-height:1.4em}
+
+/* Host lobby */
+.lobby{display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,1fr);gap:18px;align-items:start}
+@media (max-width:820px){.lobby{grid-template-columns:1fr}}
+.pinbox{background:var(--sea);color:#fff;border-radius:20px;padding:20px 24px;display:flex;flex-direction:column;gap:6px}
+.pinbox .label{font-size:15px;opacity:.85}
+.pinbox .pin{font-family:var(--font-display);font-size:clamp(56px,10vw,96px);letter-spacing:8px;line-height:1}
+.pinbox .url{font-size:14px;word-break:break-all;opacity:.9;background:rgba(255,255,255,.12);border-radius:10px;padding:6px 10px}
+.qr{background:#fff;border-radius:16px;padding:12px;display:inline-flex;align-self:flex-start}
+.qr img,.qr canvas{display:block}
+.players{display:flex;flex-wrap:wrap;gap:8px}
+.chip{display:inline-flex;align-items:center;gap:6px;background:#fff;border:2px solid var(--line);border-radius:999px;padding:4px 12px 4px 6px;font-family:var(--font-display);font-size:19px;animation:pop .35s ease}
+.chip .av{font-size:24px}
+.chip.kick:hover{border-color:var(--bad);text-decoration:line-through;cursor:pointer}
+.count{font-family:var(--font-display);font-size:22px;color:var(--sea-deep)}
+
+/* Host play */
+.board{display:grid;grid-template-columns:minmax(0,1.6fr) minmax(0,1fr);gap:16px;align-items:start}
+@media (max-width:820px){.board{grid-template-columns:1fr}}
+.timer-big{font-family:var(--font-display);font-size:clamp(40px,7vw,64px);color:var(--sea-deep);font-variant-numeric:tabular-nums;line-height:1}
+.lb{display:flex;flex-direction:column;gap:8px}
+.lb-row{display:grid;grid-template-columns:2.2em 2em minmax(0,1fr) auto;align-items:center;gap:8px;background:#fff;border:2px solid var(--line);border-radius:14px;padding:6px 12px;position:relative;overflow:hidden}
+.lb-row .bar{position:absolute;inset:0 auto 0 0;background:linear-gradient(90deg,rgba(233,180,76,.32),rgba(233,180,76,.12));transition:width .6s ease;z-index:0}
+.lb-row>*:not(.bar){position:relative;z-index:1}
+.lb-row .rk{font-family:var(--font-display);font-size:22px;color:var(--ink-soft);text-align:center}
+.lb-row .av{font-size:26px;text-align:center}
+.lb-row .nm{font-family:var(--font-display);font-size:22px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.lb-row .gd{font-family:var(--font-display);font-size:24px;color:var(--rust);font-variant-numeric:tabular-nums}
+.lb-row.top1{border-color:var(--mustard)}
+.feed{display:flex;flex-direction:column;gap:8px}
+.feed div{background:#fff;border-left:5px solid var(--sea);border-radius:10px;padding:8px 12px;font-size:16px;animation:slide .4s ease}
+@keyframes slide{from{transform:translateX(20px);opacity:0}to{transform:none;opacity:1}}
+
+/* Podium */
+.podium{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;align-items:end;text-align:center}
+.pod{display:flex;flex-direction:column;align-items:center;gap:4px;min-width:0}
+.pod .av{font-size:clamp(40px,7vw,64px)}
+.pod .nm{font-family:var(--font-display);font-size:clamp(20px,3vw,28px);max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.pod .block{width:100%;border-radius:14px 14px 0 0;color:#fff;font-family:var(--font-display);font-size:clamp(28px,5vw,44px);display:flex;align-items:flex-start;justify-content:center;padding-top:8px}
+.pod.p1 .block{height:170px;background:var(--mustard)}
+.pod.p2 .block{height:120px;background:#9fb3c2}
+.pod.p3 .block{height:90px;background:#c98a5a}
+.pod .gd{font-family:var(--font-display);color:var(--rust);font-size:20px}
+
+/* Student play */
+.sbar{display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap}
+.me{display:flex;align-items:center;gap:8px;font-family:var(--font-display);font-size:20px;min-width:0}
+.me .av{font-size:30px}
+.q{font-family:var(--font-display);font-size:clamp(22px,4.6vw,34px);line-height:1.4;text-wrap:balance}
+.tag{align-self:flex-start;font-size:13px;background:var(--sky);color:var(--sea-deep);border-radius:999px;padding:2px 10px;font-family:var(--font-display)}
+.opts{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.opt{border:none;border-radius:18px;padding:18px 14px;min-height:92px;font-family:var(--font-display);font-size:clamp(19px,3.6vw,26px);color:#fff;text-align:center;box-shadow:0 5px 0 rgba(0,0,0,.18);transition:transform .08s,opacity .2s;min-width:0;word-break:keep-all}
+.opt:active{transform:translateY(4px);box-shadow:0 1px 0 rgba(0,0,0,.18)}
+.opt.c0{background:var(--t1)}.opt.c1{background:var(--t2)}.opt.c2{background:var(--t3)}.opt.c3{background:var(--t4)}
+.opt.big{font-size:clamp(48px,10vw,80px);min-height:140px}
+.opt.dim{opacity:.3}
+.opt.right{outline:5px solid var(--good);outline-offset:3px;opacity:1}
+@media (max-width:420px){.opts.four{grid-template-columns:1fr}}
+.fb{border-radius:16px;padding:14px 18px;font-size:18px;display:flex;flex-direction:column;gap:4px}
+.fb.good{background:#e3f4ec;color:#17553d}
+.fb.bad{background:#fbe9e7;color:#7d2620}
+.fb strong{font-family:var(--font-display);font-weight:400;font-size:26px}
+.chests{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
+.chest{border:3px solid var(--line);border-radius:18px;background:#fff;padding:14px 8px;display:flex;flex-direction:column;align-items:center;gap:6px;min-height:160px;justify-content:center;min-width:0;transition:transform .15s}
+.chest:hover:not(:disabled){transform:translateY(-4px) rotate(-1deg);border-color:var(--rust)}
+.chest .box{width:88%;max-width:120px;aspect-ratio:1.5;border-radius:8px;background:repeating-linear-gradient(90deg,var(--c1) 0 10px,var(--c2) 10px 12px);box-shadow:inset 0 0 0 4px rgba(0,0,0,.15);display:flex;align-items:center;justify-content:center;font-family:var(--font-display);color:#fff;font-size:30px}
+.chest .res{font-family:var(--font-display);font-size:clamp(16px,2.8vw,21px);text-align:center;line-height:1.25}
+.chest .sub{font-size:13px;color:var(--ink-soft);text-align:center;line-height:1.35}
+.chest.picked{border-color:var(--rust);background:#fff3ec;animation:pop .4s ease}
+.chest.other{opacity:.45}
+.chest:disabled{cursor:default}
+.targets{display:flex;flex-direction:column;gap:8px}
+.target{display:grid;grid-template-columns:2em minmax(0,1fr) auto;gap:8px;align-items:center;border:3px solid var(--line);border-radius:14px;background:#fff;padding:8px 14px;font-family:var(--font-display);font-size:20px;text-align:left;color:var(--ink)}
+.target:hover{border-color:var(--rust)}
+.target .av{font-size:26px}
+.target .gd{color:var(--rust)}
+.target span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.toast{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--ink);color:#fff;border-radius:14px;padding:12px 18px;font-size:17px;max-width:min(92vw,520px);z-index:50;animation:slideup .35s ease}
+@keyframes slideup{from{transform:translate(-50%,30px);opacity:0}to{transform:translate(-50%,0);opacity:1}}
+.goldbig{font-family:var(--font-display);font-size:clamp(48px,10vw,80px);color:var(--rust);line-height:1}
+.center{text-align:center;align-items:center}
+.small{font-size:14px;color:var(--ink-soft)}
+@keyframes pop{0%{transform:scale(.92)}60%{transform:scale(1.04)}100%{transform:none}}
+.bump{animation:pop .35s ease}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <div class="brand">무역선 골드 대작전 <small>사회 6-2 · 무역 13~16차시 모둠 대항 퀴즈</small></div>
+    <div class="row" id="hud"></div>
+  </header>
+  <div class="demo" id="demoBanner" hidden>연습 모드예요. 파일 위쪽에 Firebase 설정을 넣기 전까지는 <b>같은 컴퓨터의 다른 탭</b>끼리만 연결돼요. 탭을 하나 더 열어 학생으로 참여해 보세요.</div>
+  <main id="app"></main>
+</div>
+<div id="toastHost"></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<script>
+(function(){
+"use strict";
+/* ---------------- helpers ---------------- */
+const $ = s => document.querySelector(s);
+const app = $('#app');
+const esc = s => String(s==null?'':s).replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const shuffle = a => { a=a.slice(); for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];} return a; };
+const rid = () => Math.random().toString(36).slice(2,10)+Date.now().toString(36).slice(-4);
+const sGet = k => { try{ return sessionStorage.getItem(k); }catch(e){ return null; } };
+const sSet = (k,v) => { try{ sessionStorage.setItem(k,v); }catch(e){} };
+const fmtTime = ms => { ms=Math.max(0,ms); const s=Math.ceil(ms/1000); return Math.floor(s/60)+':'+String(s%60).padStart(2,'0'); };
+function toast(text){
+  const t=document.createElement('div'); t.className='toast'; t.textContent=text;
+  $('#toastHost').appendChild(t); setTimeout(()=>t.remove(),3800);
+}
+let cleanups=[];
+function clearWatches(){ cleanups.forEach(f=>{try{f();}catch(e){}}); cleanups=[]; }
+let timers=[];
+function clearTimers(){ timers.forEach(t=>clearInterval(t)); timers=[]; }
+
+/* ---------------- question bank ---------------- */
+const IE=['수입','수출'];
+const Q = [
+  // 13차시: 무역의 의미
+  {s:'r', q:'나라와 나라 사이에 물자나 서비스를 사고팔거나 교환하는 것을 무역이라고 한다.', o:['O','X'], a:0, why:'무역은 나라 사이의 거래예요.'},
+  {s:'r', q:'다른 나라에서 물건을 사 오는 것을 수출이라고 한다.', o:['O','X'], a:1, why:'사 오는 것은 수입, 파는 것이 수출이에요.'},
+  {s:'r', q:'고려 시대 벽란도에는 여러 나라 상인이 모여 무역을 했다.', o:['O','X'], a:0, why:'벽란도는 고려의 국제 무역항이었어요.'},
+  {s:'r', q:'무역으로는 물건만 거래할 수 있고 서비스는 거래할 수 없다.', o:['O','X'], a:1, why:'동영상 서비스, 여행, 교육 같은 서비스도 무역이 돼요.'},
+  {s:'r', q:'다른 나라에 물자나 서비스를 파는 것은?', o:['수입','수출','교환','저축'], a:1, why:'다른 나라에 파는 것이 수출이에요.'},
+  // 14차시: 무역이 필요한 까닭
+  {s:'r', q:'살아가는 데 필요한 모든 물자와 서비스를 한 나라 안에서 구하기는 어렵다.', o:['O','X'], a:0, why:'그래서 서로 필요한 것을 주고받아요.'},
+  {s:'r', q:'우리나라에서 구할 수 있는 물건은 절대 수입하지 않는다.', o:['O','X'], a:1, why:'더 싸거나 품질이 좋으면 수입하기도 해요.'},
+  {s:'r', q:'무역을 하면 두 나라 모두 더 풍족해질 수 있다.', o:['O','X'], a:0, why:'서로 잘 만드는 것을 주고받으니 모두 이익이에요.'},
+  {s:'r', q:'각 나라는 효율적으로 생산하기 어려운 상품을 주로 수출한다.', o:['O','X'], a:1, why:'잘 만드는 상품은 수출, 만들기 어려운 상품은 수입해요.'},
+  {s:'r', q:'나라마다 잘 만드는 물자가 다른 까닭이 아닌 것은?', o:['자연환경','천연자원','기술','국기 색깔'], a:3, why:'자연환경, 자원, 자본, 기술의 차이 때문이에요.'},
+  // 15차시: 우리나라 무역의 특징
+  {s:'15', q:'🛢️ 원유', o:IE, a:0, why:'우리나라는 원유가 거의 나지 않아 수입해요.', kind:'ie'},
+  {s:'15', q:'🔥 천연가스', o:IE, a:0, why:'난방과 전기에 쓰는 천연가스는 대부분 수입해요.', kind:'ie'},
+  {s:'15', q:'⛏️ 철광석', o:IE, a:0, why:'철을 만드는 철광석은 오스트레일리아 등에서 들여와요.', kind:'ie'},
+  {s:'15', q:'⚫ 석탄', o:IE, a:0, why:'발전소와 공장에 쓰는 석탄도 대부분 수입해요.', kind:'ie'},
+  {s:'15', q:'🌾 밀', o:IE, a:0, why:'땅이 좁아 밀을 충분히 기르기 어려워요.', kind:'ie'},
+  {s:'15', q:'☕ 커피 원두', o:IE, a:0, why:'커피나무는 덥고 비가 많은 나라에서 잘 자라요.', kind:'ie'},
+  {s:'15', q:'💾 반도체', o:IE, a:1, why:'우리나라 수출 1위 품목이에요.', kind:'ie'},
+  {s:'15', q:'🚗 자동차', o:IE, a:1, why:'수입한 철과 부품으로 만들어 세계로 팔아요.', kind:'ie'},
+  {s:'15', q:'🛳️ 선박', o:IE, a:1, why:'큰 배를 만드는 조선 기술이 세계적이에요.', kind:'ie'},
+  {s:'15', q:'📱 스마트폰', o:IE, a:1, why:'무선 통신 기기는 대표 수출품이에요.', kind:'ie'},
+  {s:'15', q:'💄 화장품', o:IE, a:1, why:'K-뷰티 인기로 수출이 크게 늘었어요.', kind:'ie'},
+  {s:'15', q:'🍜 라면', o:IE, a:1, why:'K-푸드 인기로 세계 곳곳에 팔려요.', kind:'ie'},
+  {s:'15', q:'우리나라가 원유와 천연가스를 주로 수입하는 까닭은?', o:['천연자원이 부족해서','기술이 부족해서','값이 너무 싸서','수출하고 남아서'], a:0, why:'산업에 필요한 천연자원이 부족해요.'},
+  {s:'15', q:'우리나라가 반도체, 자동차를 많이 수출할 수 있는 까닭은?', o:['땅이 넓어서','천연자원이 많아서','기술이 발달해서','날씨가 따뜻해서'], a:2, why:'수입한 자원을 상품으로 만드는 기술이 발달했어요.'},
+  {s:'15', q:'우리나라 무역의 특징으로 알맞은 것은?', o:['자원을 수입해 상품으로 만들어 수출한다','자원을 수출하고 상품을 수입한다','무역을 거의 하지 않는다','농산물을 가장 많이 수출한다'], a:0, why:'자원은 수입하고, 기술로 만든 상품은 수출해요.'},
+  {s:'15', q:'1970년대에 비해 지금 우리나라의 주요 수출품은 어떻게 바뀌었나요?', o:['옷·신발 → 반도체·자동차','반도체 → 옷·신발','쌀 → 석유','변하지 않았다'], a:0, why:'기술과 자본이 발달하며 첨단 제품을 수출하게 되었어요.'},
+  // 16차시: 다른 나라의 무역 사례
+  {s:'16', q:'땅속에 원유가 아주 많아 원유를 세계로 수출하는 나라는?', o:['사우디아라비아','싱가포르','브라질','일본'], a:0, why:'풍부한 천연자원(원유)을 수출해요.'},
+  {s:'16', q:'넓은 땅과 덥고 비가 많은 기후 덕분에 쌀을 가장 많이 수출하는 나라는?', o:['미국','인도','싱가포르','사우디아라비아'], a:1, why:'자연환경 덕분에 쌀 생산이 많아요.'},
+  {s:'16', q:'뛰어난 기술로 동영상 서비스(OTT)와 컴퓨터 프로그램을 수출하는 나라는?', o:['브라질','오스트레일리아','미국','인도'], a:2, why:'기술을 바탕으로 서비스를 수출해요.'},
+  {s:'16', q:'바닷길의 길목에 큰 항구를 만들어 상품을 모았다가 다시 파는 나라는?', o:['싱가포르','사우디아라비아','브라질','인도'], a:0, why:'무역에 유리한 지리적 위치를 이용해요.'},
+  {s:'16', q:'철광석을 세계에서 가장 많이 수출하는 나라는?', o:['싱가포르','오스트레일리아','미국','인도'], a:1, why:'철광석, 석탄 같은 천연자원이 풍부해요.'},
+  {s:'16', q:'넓은 땅과 따뜻한 기후로 커피를 가장 많이 수출하는 나라는?', o:['브라질','미국','싱가포르','사우디아라비아'], a:0, why:'자연환경 덕분에 커피를 많이 재배해요.'},
+  {s:'16', q:'싱가포르의 무역이 발달한 가장 큰 까닭은?', o:['넓은 땅','풍부한 원유','지리적 위치','추운 날씨'], a:2, why:'여러 바닷길이 만나는 길목에 있어요.'},
+  {s:'16', q:'무역에서 많은 상품을 안전하고 효율적으로 실어 나르는 데 주로 쓰는 것은?', o:['선박','자전거','기차','열기구'], a:0, why:'그래서 큰 항구가 있는 도시에서 무역이 활발해요.'},
+  {s:'16', q:'원유를 수입하는 나라에 전쟁이 나서 수입이 어려워지면?', o:['기름값·비닐값이 오를 수 있다','아무 일도 없다','반도체가 싸진다','쌀이 많아진다'], a:0, why:'원유로 만드는 비닐·플라스틱과 기름값이 올라요.'},
+  {s:'16', q:'새 상품을 전시하고 판매자와 소비자가 직접 묻고 답하는 행사는?', o:['박람회','운동회','선거','졸업식'], a:0, why:'CES(가전), 게임스컴(게임) 같은 세계 박람회가 있어요.'},
+  {s:'16', q:'다른 나라 물건이 들어올 때 붙이는 세금을 무엇이라고 할까요?', o:['관세','용돈','이자','상금'], a:0, why:'관세가 붙으면 수입품 값이 올라요.'}
+];
+const SETS = {
+  all:{label:'전체 (13~16차시)', f:()=>true},
+  r:{label:'복습 (13~14차시)', f:q=>q.s==='r'},
+  '15':{label:'15차시 우리나라 무역', f:q=>q.s==='15'},
+  '16':{label:'16차시 다른 나라 무역', f:q=>q.s==='16'},
+  '1516':{label:'15~16차시', f:q=>q.s==='15'||q.s==='16'}
+};
+const SETTAG = {r:'복습', '15':'15차시', '16':'16차시'};
+const AVATARS = ['🚢','⛵','🐳','🐬','🦀','🐙','🦭','🐢','🦈','🐧','🦜','⚓'];
+
+/* ---------------- chests ---------------- */
+const CHEST_POOL = [
+  {w:20, k:'add', v:10,  t:'화물 +10', sub:'작은 화물을 실었어요'},
+  {w:20, k:'add', v:20,  t:'화물 +20', sub:'반도체 한 상자!'},
+  {w:14, k:'add', v:40,  t:'화물 +40', sub:'자동차 수출 성공'},
+  {w:6,  k:'add', v:75,  t:'화물 +75', sub:'초대형 선박 수주!'},
+  {w:7,  k:'mul', v:2,   t:'수출 대박 ×2', sub:'골드가 두 배!'},
+  {w:8,  k:'lose',v:.25, t:'관세 폭탄 −25%', sub:'관세: 수입품에 붙는 세금'},
+  {w:5,  k:'lose',v:.1,  t:'태풍 −10%', sub:'항로가 막혔어요'},
+  {w:10, k:'steal',v:.2, t:'중계무역 +20%', sub:'다른 선장 골드 20% 가져오기'},
+  {w:4,  k:'swap', v:0,  t:'화물선 교환', sub:'다른 선장과 골드 바꾸기'}
+];
+function rollChest(){
+  const total=CHEST_POOL.reduce((s,c)=>s+c.w,0);
+  let r=Math.random()*total;
+  for(const c of CHEST_POOL){ if((r-=c.w)<0) return c; }
+  return CHEST_POOL[0];
+}
+const CHEST_COLORS=[['#d9622b','#a8461a'],['#2a9d8f','#1d7268'],['#1f5f8b','#123f5e']];
+
+/* ---------------- backend: Firebase or local demo ---------------- */
+const hasFirebase = !!(FIREBASE_CONFIG && FIREBASE_CONFIG.apiKey && FIREBASE_CONFIG.projectId);
+let B = null;
+
+function loadScript(src){ return new Promise((res,rej)=>{ const s=document.createElement('script'); s.src=src; s.onload=res; s.onerror=()=>rej(new Error('load '+src)); document.head.appendChild(s); }); }
+
+async function makeFirebase(){
+  await loadScript('https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js');
+  await loadScript('https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js');
+  firebase.initializeApp(FIREBASE_CONFIG);
+  const db = firebase.firestore();
+  const G = pin => db.collection('tradeGames').doc(pin);
+  const P = (pin,id) => G(pin).collection('players').doc(id);
+  return {
+    mode:'firebase',
+    createGame:(pin,d)=>G(pin).set(d),
+    getGame:async pin=>{ const s=await G(pin).get(); return s.exists?s.data():null; },
+    updateGame:(pin,p)=>G(pin).update(p),
+    watchGame:(pin,cb)=>G(pin).onSnapshot(s=>cb(s.exists?s.data():null), e=>console.error(e)),
+    setPlayer:(pin,id,d)=>P(pin,id).set(d),
+    getPlayer:async (pin,id)=>{ const s=await P(pin,id).get(); return s.exists?s.data():null; },
+    deletePlayer:(pin,id)=>P(pin,id).delete(),
+    watchPlayers:(pin,cb)=>G(pin).collection('players').onSnapshot(q=>cb(q.docs.map(d=>Object.assign({id:d.id},d.data()))), e=>console.error(e)),
+    watchPlayer:(pin,id,cb)=>P(pin,id).onSnapshot(s=>cb(s.exists?s.data():null), e=>console.error(e)),
+    answer:(pin,id,ok)=>P(pin,id).update({answered:firebase.firestore.FieldValue.increment(1), correct:firebase.firestore.FieldValue.increment(ok?1:0)}),
+    changeGold:(pin,id,fn)=>db.runTransaction(async tx=>{
+      const s=await tx.get(P(pin,id)); if(!s.exists) return null;
+      const before=s.data().gold||0; const after=Math.max(0,Math.min(999999,Math.round(fn(before))));
+      tx.update(P(pin,id),{gold:after}); return {before,after};
+    }),
+    trade:(pin,me,other,kind,ratio)=>db.runTransaction(async tx=>{
+      const a=await tx.get(P(pin,me)), b=await tx.get(P(pin,other));
+      if(!a.exists||!b.exists) return null;
+      const ga=a.data().gold||0, gb=b.data().gold||0;
+      if(kind==='swap'){ tx.update(P(pin,me),{gold:gb}); tx.update(P(pin,other),{gold:ga}); return {mine:gb, theirs:ga, amount:gb-ga}; }
+      const amt=Math.floor(gb*ratio);
+      tx.update(P(pin,me),{gold:Math.min(999999,ga+amt)}); tx.update(P(pin,other),{gold:gb-amt}); return {mine:ga+amt, amount:amt};
+    }),
+    addEvent:(pin,e)=>G(pin).collection('events').add(Object.assign({at:Date.now()},e)),
+    watchEvents:(pin,cb)=>G(pin).collection('events').orderBy('at','desc').limit(8).onSnapshot(q=>cb(q.docs.map(d=>Object.assign({id:d.id},d.data()))), e=>console.error(e))
+  };
+}
+
+function makeLocal(){
+  const K = pin => 'tradeGame:'+pin;
+  const subs = {};
+  const read = pin => { try{ return JSON.parse(localStorage.getItem(K(pin))||'null'); }catch(e){ return null; } };
+  const write = (pin,obj) => { try{ localStorage.setItem(K(pin), JSON.stringify(obj)); }catch(e){} fire(pin); };
+  const fire = pin => (subs[pin]||[]).slice().forEach(f=>f());
+  window.addEventListener('storage', e=>{ if(e.key && e.key.startsWith('tradeGame:')) fire(e.key.slice(10)); });
+  const sub = (pin,f) => { (subs[pin]=subs[pin]||[]).push(f); setTimeout(f,0); return ()=>{ subs[pin]=(subs[pin]||[]).filter(x=>x!==f); }; };
+  const mut = (pin,fn) => { const o=read(pin); if(!o) return null; const r=fn(o); write(pin,o); return r; };
+  return {
+    mode:'local',
+    createGame:async (pin,d)=>write(pin,{game:d,players:{},events:[]}),
+    getGame:async pin=>{ const o=read(pin); return o?o.game:null; },
+    updateGame:async (pin,p)=>mut(pin,o=>{ Object.assign(o.game,p); }),
+    watchGame:(pin,cb)=>sub(pin,()=>{ const o=read(pin); cb(o?o.game:null); }),
+    setPlayer:async (pin,id,d)=>mut(pin,o=>{ o.players[id]=d; }),
+    getPlayer:async (pin,id)=>{ const o=read(pin); return o&&o.players[id]||null; },
+    deletePlayer:async (pin,id)=>mut(pin,o=>{ delete o.players[id]; }),
+    watchPlayers:(pin,cb)=>sub(pin,()=>{ const o=read(pin); cb(o?Object.keys(o.players).map(id=>Object.assign({id},o.players[id])):[]); }),
+    watchPlayer:(pin,id,cb)=>sub(pin,()=>{ const o=read(pin); cb(o&&o.players[id]||null); }),
+    answer:async (pin,id,ok)=>mut(pin,o=>{ const p=o.players[id]; if(p){ p.answered=(p.answered||0)+1; if(ok) p.correct=(p.correct||0)+1; } }),
+    changeGold:async (pin,id,fn)=>mut(pin,o=>{ const p=o.players[id]; if(!p) return null; const before=p.gold||0; p.gold=Math.max(0,Math.min(999999,Math.round(fn(before)))); return {before,after:p.gold}; }),
+    trade:async (pin,me,other,kind,ratio)=>mut(pin,o=>{
+      const a=o.players[me], b=o.players[other]; if(!a||!b) return null;
+      if(kind==='swap'){ const t=a.gold; a.gold=b.gold; b.gold=t; return {mine:a.gold,theirs:b.gold,amount:a.gold-t}; }
+      const amt=Math.floor((b.gold||0)*ratio); a.gold+=amt; b.gold-=amt; return {mine:a.gold,amount:amt};
+    }),
+    addEvent:async (pin,e)=>mut(pin,o=>{ o.events.unshift(Object.assign({id:rid(),at:Date.now()},e)); o.events=o.events.slice(0,8); }),
+    watchEvents:(pin,cb)=>sub(pin,()=>{ const o=read(pin); cb(o?o.events:[]); })
+  };
+}
+
+/* ---------------- HUD ---------------- */
+function hud(html){ $('#hud').innerHTML=html||''; }
+
+/* ---------------- Landing ---------------- */
+const params = new URLSearchParams(location.search);
+function landing(){
+  clearWatches(); clearTimers(); hud('');
+  app.innerHTML = `
+  <section class="card">
+    <div class="eyebrow">블루킷처럼 다 같이 · 실시간 골드 경쟁</div>
+    <h1 style="font-size:clamp(32px,6vw,52px);color:var(--sea-deep)">누가 최고의 무역왕이 될까?</h1>
+    <p class="lead">문제를 맞히면 화물 상자를 열 수 있어요. 상자에는 골드도, 관세 폭탄도, 다른 선장의 골드를 가져오는 중계무역 카드도 들어 있어요. 제한 시간이 끝났을 때 골드가 가장 많은 선장이 우승!</p>
+    <div class="grid2">
+      <button class="role" id="asHost" type="button"><span class="em">🧑‍🏫</span><b>선생님: 게임 열기</b><span>PIN 번호와 QR을 띄우고 순위판을 화면에 보여 줘요.</span></button>
+      <button class="role" id="asPlayer" type="button"><span class="em">🧒</span><b>학생: 참여하기</b><span>선생님 화면의 PIN 번호를 입력하고 들어가요.</span></button>
+    </div>
+  </section>`;
+  $('#asHost').onclick=hostSetup;
+  $('#asPlayer').onclick=()=>playerJoin('');
+}
+
+/* =====================================================================
+   HOST
+   ===================================================================== */
+let H = {pin:null, set:'1516', dur:5, players:[], game:null};
+
+function hostSetup(){
+  clearWatches(); clearTimers(); hud('');
+  const durs=[3,5,7,10];
+  app.innerHTML = `
+  <section class="card">
+    <div class="eyebrow">선생님 · 게임 설정</div>
+    <h2>어떤 문제로 겨룰까요?</h2>
+    <div class="field"><label>문제 범위</label><div class="seg" id="setSeg">${Object.keys(SETS).map(k=>`<button type="button" data-k="${k}" aria-pressed="${k===H.set}">${SETS[k].label} · ${QS(k).length}문제</button>`).join('')}</div></div>
+    <div class="field"><label>제한 시간</label><div class="seg" id="durSeg">${durs.map(d=>`<button type="button" data-d="${d}" aria-pressed="${d===H.dur}">${d}분</button>`).join('')}</div></div>
+    <div class="row"><button class="btn" id="create" type="button">🚢 게임 방 만들기</button><button class="btn ghost" id="back" type="button">처음으로</button></div>
+    <div class="err" id="err"></div>
+  </section>`;
+  app.querySelectorAll('#setSeg button').forEach(b=>b.onclick=()=>{ H.set=b.dataset.k; app.querySelectorAll('#setSeg button').forEach(x=>x.setAttribute('aria-pressed', String(x===b))); });
+  app.querySelectorAll('#durSeg button').forEach(b=>b.onclick=()=>{ H.dur=+b.dataset.d; app.querySelectorAll('#durSeg button').forEach(x=>x.setAttribute('aria-pressed', String(x===b))); });
+  $('#back').onclick=landing;
+  $('#create').onclick=async ()=>{
+    $('#create').disabled=true;
+    try{
+      let pin, tries=0;
+      do{ pin=String(Math.floor(100000+Math.random()*900000)); tries++; } while(tries<5 && await B.getGame(pin));
+      await B.createGame(pin,{status:'lobby', set:H.set, durationMs:H.dur*60000, createdAt:Date.now(), startedAt:0});
+      H.pin=pin; sSet('tradeHostPin',pin);
+      hostLobby();
+    }catch(e){ console.error(e); $('#err').textContent='게임 방을 만들지 못했어요. ('+(e&&e.code?e.code:'오류')+') Firestore 규칙 게시 여부와 apiKey를 확인해 주세요.'; $('#create').disabled=false; }
+  };
+}
+const QS = k => Q.filter(SETS[k].f);
+
+function joinUrl(pin){ return location.origin+location.pathname+'?pin='+pin; }
+
+function hostLobby(){
+  clearWatches(); clearTimers();
+  hud(`<span class="pill">PIN ${H.pin}</span>`);
+  const url=joinUrl(H.pin);
+  app.innerHTML = `
+  <section class="card">
+    <div class="lobby">
+      <div style="display:flex;flex-direction:column;gap:14px;min-width:0">
+        <div class="pinbox">
+          <span class="label">이 주소로 들어와 PIN을 입력하세요</span>
+          <span class="pin">${H.pin}</span>
+          <span class="url">${esc(url)}</span>
+        </div>
+        <div class="row" style="align-items:flex-start">
+          <div class="qr" id="qr" aria-label="참여 QR 코드"></div>
+          <div style="display:flex;flex-direction:column;gap:6px;flex:1;min-width:180px">
+            <p class="small">문제 범위: <b>${esc(SETS[H.set].label)}</b><br>제한 시간: <b>${H.dur}분</b></p>
+            <p class="small">이름이 알맞지 않은 학생은 이름을 눌러 내보낼 수 있어요.</p>
+          </div>
+        </div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:12px;min-width:0">
+        <div class="row" style="justify-content:space-between"><span class="count" id="cnt">0명 승선</span><button class="btn" id="start" type="button" disabled>⚓ 출항! 게임 시작</button></div>
+        <div class="players" id="plist"><span class="small">학생들이 들어오면 여기에 나타나요…</span></div>
+        <div class="row"><button class="btn ghost" id="cancel" type="button">설정으로 돌아가기</button></div>
+      </div>
+    </div>
+  </section>`;
+  try{ if(window.QRCode) new QRCode($('#qr'),{text:url,width:170,height:170,correctLevel:QRCode.CorrectLevel.M}); else $('#qr').hidden=true; }catch(e){ $('#qr').hidden=true; }
+  cleanups.push(B.watchPlayers(H.pin, list=>{
+    H.players=list;
+    $('#cnt').textContent=list.length+'명 승선';
+    $('#start').disabled=list.length<1;
+    const pl=$('#plist');
+    if(!list.length){ pl.innerHTML='<span class="small">학생들이 들어오면 여기에 나타나요…</span>'; return; }
+    pl.innerHTML=list.sort((a,b)=>(a.joinedAt||0)-(b.joinedAt||0)).map(p=>`<span class="chip kick" data-id="${esc(p.id)}" title="눌러서 내보내기"><span class="av">${esc(p.avatar)}</span>${esc(p.name)}</span>`).join('');
+    pl.querySelectorAll('.chip').forEach(c=>c.onclick=()=>{ if(c.dataset.armed){ B.deletePlayer(H.pin,c.dataset.id); } else { c.dataset.armed='1'; c.style.borderColor='var(--bad)'; c.title='한 번 더 누르면 내보내요'; setTimeout(()=>{ delete c.dataset.armed; c.style.borderColor=''; },2500); } });
+  }));
+  $('#start').onclick=async ()=>{
+    $('#start').disabled=true;
+    await B.updateGame(H.pin,{status:'playing', startedAt:Date.now()});
+    hostPlay();
+  };
+  $('#cancel').onclick=async ()=>{ await B.updateGame(H.pin,{status:'ended'}); hostSetup(); };
+}
+
+function hostPlay(){
+  clearWatches(); clearTimers();
+  const end = Date.now()+H.dur*60000;
+  hud(`<span class="pill">PIN ${H.pin}</span>`);
+  app.innerHTML = `
+  <section class="card">
+    <div class="row" style="justify-content:space-between">
+      <div><div class="eyebrow">항해 중 · ${esc(SETS[H.set].label)}</div><div class="timer-big" id="tm">${fmtTime(end-Date.now())}</div></div>
+      <div class="row"><span class="count" id="stat"></span><button class="btn ghost" id="stop" type="button">지금 끝내기</button></div>
+    </div>
+    <div class="board">
+      <div class="lb" id="lb"></div>
+      <div style="display:flex;flex-direction:column;gap:10px;min-width:0">
+        <h3 style="color:var(--sea-deep)">📡 항구 소식</h3>
+        <div class="feed" id="feed"><div>모든 선장이 출항했어요!</div></div>
+        <p class="small">학생이 늦게 들어와도 PIN ${H.pin}으로 참여할 수 있어요.</p>
+      </div>
+    </div>
+  </section>`;
+  let finished=false;
+  const finish=async ()=>{ if(finished) return; finished=true; clearTimers(); await B.updateGame(H.pin,{status:'ended'}); hostEnd(); };
+  timers.push(setInterval(()=>{ const left=end-Date.now(); const el=$('#tm'); if(el) el.textContent=fmtTime(left); if(left<=0) finish(); },250));
+  $('#stop').onclick=()=>{ const b=$('#stop'); if(b.dataset.armed) finish(); else { b.dataset.armed='1'; b.textContent='정말 끝낼까요? 한 번 더'; setTimeout(()=>{ if(b){ delete b.dataset.armed; b.textContent='지금 끝내기'; } },3000); } };
+  cleanups.push(B.watchPlayers(H.pin, list=>{ H.players=list; renderBoard(list); }));
+  cleanups.push(B.watchEvents(H.pin, evs=>{
+    const f=$('#feed'); if(!f) return;
+    if(!evs.length) return;
+    f.innerHTML=evs.slice(0,6).map(e=>`<div>${esc(e.text)}</div>`).join('');
+  }));
+}
+function renderBoard(list){
+  const lb=$('#lb'); if(!lb) return;
+  const sorted=list.slice().sort((a,b)=>(b.gold||0)-(a.gold||0));
+  const top=Math.max(1,...sorted.map(p=>p.gold||0));
+  const ans=list.reduce((s,p)=>s+(p.answered||0),0), cor=list.reduce((s,p)=>s+(p.correct||0),0);
+  const st=$('#stat'); if(st) st.textContent=`${list.length}명 · 정답률 ${ans?Math.round(cor/ans*100):0}%`;
+  lb.innerHTML=sorted.slice(0,12).map((p,i)=>`
+    <div class="lb-row ${i===0?'top1':''}"><span class="bar" style="width:${Math.round((p.gold||0)/top*100)}%"></span>
+      <span class="rk">${i===0?'👑':i+1}</span><span class="av">${esc(p.avatar)}</span><span class="nm">${esc(p.name)}</span><span class="gd">${p.gold||0}</span></div>`).join('')
+    + (sorted.length>12?`<p class="small">그 밖에 ${sorted.length-12}명이 항해 중이에요.</p>`:'');
+}
+
+function hostEnd(){
+  clearWatches(); clearTimers();
+  hud(`<span class="pill">PIN ${H.pin}</span>`);
+  const list=H.players.slice().sort((a,b)=>(b.gold||0)-(a.gold||0));
+  const pod=(p,cls,rank)=>p?`<div class="pod ${cls}"><span class="av">${esc(p.avatar)}</span><span class="nm">${esc(p.name)}</span><span class="gd">${p.gold||0} 골드</span><div class="block">${rank}</div></div>`:`<div class="pod ${cls}"></div>`;
+  app.innerHTML = `
+  <section class="card">
+    <div class="eyebrow center" style="text-align:center">항해 종료 · 오늘의 무역왕</div>
+    <div class="podium">${pod(list[1],'p2','2')}${pod(list[0],'p1','1')}${pod(list[2],'p3','3')}</div>
+    <div class="lb">${list.slice(3).map((p,i)=>`<div class="lb-row"><span class="bar" style="width:0"></span><span class="rk">${i+4}</span><span class="av">${esc(p.avatar)}</span><span class="nm">${esc(p.name)} <span class="small">정답 ${p.correct||0}/${p.answered||0}</span></span><span class="gd">${p.gold||0}</span></div>`).join('')}</div>
+    <div class="fb good"><strong>정리 질문</strong><span>우리나라는 왜 원유를 수입하고 반도체를 수출할까요? 싱가포르는 무엇 덕분에 무역이 발달했을까요?</span></div>
+    <div class="row"><button class="btn" id="again" type="button">🔁 같은 설정으로 새 게임</button><button class="btn ghost" id="home" type="button">처음으로</button></div>
+  </section>`;
+  $('#again').onclick=async ()=>{
+    let pin; do{ pin=String(Math.floor(100000+Math.random()*900000)); } while(await B.getGame(pin));
+    await B.createGame(pin,{status:'lobby', set:H.set, durationMs:H.dur*60000, createdAt:Date.now(), startedAt:0});
+    H.pin=pin; hostLobby();
+  };
+  $('#home').onclick=landing;
+}
+
+/* =====================================================================
+   PLAYER
+   ===================================================================== */
+let P = {pin:null, id:null, me:null, players:[], game:null, deck:[], qi:0, endAt:0, busy:false, lastEvent:0, view:''};
+
+function playerJoin(prefill, msg){
+  clearWatches(); clearTimers(); hud('');
+  let av=AVATARS[Math.floor(Math.random()*AVATARS.length)];
+  app.innerHTML = `
+  <section class="card">
+    <div class="eyebrow">학생 · 승선 신청</div>
+    <h2>PIN과 이름을 입력해요</h2>
+    <div class="field"><label for="pinIn">게임 PIN</label><input id="pinIn" class="pinin" type="tel" inputmode="numeric" maxlength="6" autocomplete="off" placeholder="000000" value="${esc(prefill)}"></div>
+    <div class="field"><label for="nameIn">선장 이름 (8자까지)</label><input id="nameIn" type="text" maxlength="8" autocomplete="off" placeholder="예: 김민준"></div>
+    <div class="field"><label>내 배 고르기</label><div class="avatars" id="avs">${AVATARS.map(a=>`<button type="button" data-a="${a}" aria-pressed="${a===av}">${a}</button>`).join('')}</div></div>
+    <div class="row"><button class="btn" id="join" type="button">승선하기 ▶</button><button class="btn ghost" id="back" type="button">처음으로</button></div>
+    <div class="err" id="err">${esc(msg||'')}</div>
+  </section>`;
+  app.querySelectorAll('#avs button').forEach(b=>b.onclick=()=>{ av=b.dataset.a; app.querySelectorAll('#avs button').forEach(x=>x.setAttribute('aria-pressed',String(x===b))); });
+  $('#back').onclick=landing;
+  (prefill?$('#nameIn'):$('#pinIn')).focus();
+  const go=async ()=>{
+    const pin=$('#pinIn').value.replace(/\D/g,'');
+    const name=$('#nameIn').value.trim().replace(/\s+/g,' ').slice(0,8);
+    const err=$('#err');
+    if(pin.length!==6){ err.textContent='PIN 6자리를 입력해 주세요.'; return; }
+    if(!name){ err.textContent='이름을 입력해 주세요.'; return; }
+    $('#join').disabled=true; err.textContent='';
+    try{
+      const g=await B.getGame(pin);
+      if(!g){ err.textContent='그 PIN의 게임이 없어요. 번호를 다시 확인해 주세요.'; $('#join').disabled=false; return; }
+      if(g.status==='ended'){ err.textContent='이미 끝난 게임이에요.'; $('#join').disabled=false; return; }
+      const id=rid();
+      await B.setPlayer(pin,id,{name, avatar:av, gold:0, correct:0, answered:0, joinedAt:Date.now()});
+      sSet('tradePlayer:'+pin,id);
+      P.pin=pin; P.id=id;
+      playerConnect();
+    }catch(e){ console.error(e); err.textContent='연결하지 못했어요. 잠시 후 다시 해 주세요.'; $('#join').disabled=false; }
+  };
+  $('#join').onclick=go;
+  $('#nameIn').addEventListener('keydown',e=>{ if(e.key==='Enter') go(); });
+  $('#pinIn').addEventListener('keydown',e=>{ if(e.key==='Enter') $('#nameIn').focus(); });
+}
+
+function playerConnect(){
+  clearWatches(); clearTimers();
+  P.view=''; P.lastEvent=Date.now();
+  cleanups.push(B.watchPlayer(P.pin,P.id, me=>{
+    if(!me){ sSet('tradePlayer:'+P.pin,''); return playerJoin(P.pin,'선생님이 이름을 바꿔서 다시 들어오라고 했어요.'); }
+    const old=P.me; P.me=me;
+    updateHud(old && old.gold!==me.gold);
+  }));
+  cleanups.push(B.watchPlayers(P.pin, list=>{ P.players=list; updateHud(false); }));
+  cleanups.push(B.watchEvents(P.pin, evs=>{
+    evs.filter(e=>e.to===P.id && e.at>P.lastEvent).reverse().forEach(e=>toast(e.text));
+    if(evs.length) P.lastEvent=Math.max(P.lastEvent,...evs.map(e=>e.at||0));
+  }));
+  cleanups.push(B.watchGame(P.pin, g=>{
+    P.game=g;
+    if(!g){ return playerJoin('', '게임이 사라졌어요.'); }
+    if(g.status==='lobby' && P.view!=='wait') playerWait();
+    else if(g.status==='playing' && P.view!=='play' && P.view!=='timeup'){
+      const elapsed=Math.min(Math.max(0,Date.now()-(g.startedAt||Date.now())), g.durationMs);
+      P.endAt=Date.now()+g.durationMs-elapsed;
+      P.deck=shuffle(QS(g.set)); P.qi=0;
+      playerPlay();
+    }
+    else if(g.status==='ended' && P.view!=='end') playerEnd();
+  }));
+}
+function myRank(){
+  const s=P.players.slice().sort((a,b)=>(b.gold||0)-(a.gold||0));
+  const i=s.findIndex(p=>p.id===P.id); return i<0?'-':(i+1);
+}
+function updateHud(bump){
+  if(!P.me) return;
+  const left = P.view==='play' ? `<span class="pill" id="ptm">${fmtTime(P.endAt-Date.now())}</span>` : '';
+  hud(`${left}<span class="pill">${myRank()}등 / ${P.players.length}명</span><span class="pill ${bump?'bump':''}">💰 ${P.me.gold||0}</span>`);
+}
+
+function playerWait(){
+  P.view='wait'; clearTimers(); updateHud(false);
+  app.innerHTML = `
+  <section class="card center">
+    <div style="font-size:72px">${esc(P.me?P.me.avatar:'🚢')}</div>
+    <h2>${esc(P.me?P.me.name:'')} 선장, 승선 완료!</h2>
+    <p class="lead">선생님이 출항 신호를 보낼 때까지 기다려 주세요. 화면에 내 이름이 보이는지 확인해요.</p>
+    <p class="small">PIN ${esc(P.pin)}</p>
+  </section>`;
+}
+
+function playerPlay(){
+  P.view='play'; clearTimers();
+  timers.push(setInterval(()=>{
+    const left=P.endAt-Date.now();
+    const t=$('#ptm'); if(t) t.textContent=fmtTime(left);
+    if(left<=0 && P.view==='play'){ P.view='timeup'; clearTimers(); updateHud(false);
+      app.innerHTML=`<section class="card center"><div style="font-size:64px">⏰</div><h2>시간 종료!</h2><p class="lead">선생님 화면에서 결과를 확인해요.</p><div class="goldbig">💰 ${P.me?P.me.gold:0}</div></section>`; }
+  },250));
+  nextQuestion();
+}
+
+function nextQuestion(){
+  if(P.view!=='play') return;
+  updateHud(false);
+  if(P.qi>=P.deck.length){ P.deck=shuffle(P.deck); P.qi=0; }
+  const q=P.deck[P.qi++];
+  const isOX = q.o.length===2 && q.o[0]==='O';
+  const isIE = q.kind==='ie';
+  const prompt = isIE ? `<span class="small">우리나라는 이것을 주로…</span><br>${esc(q.q)}` : esc(q.q);
+  const order = isOX||isIE ? [0,1] : shuffle([0,1,2,3]);
+  app.innerHTML = `
+  <section class="card">
+    <span class="tag">${SETTAG[q.s]||''}${isIE?' · 수입일까 수출일까?':''}</span>
+    <div class="q">${prompt}</div>
+    <div class="opts ${order.length===4?'four':''}">${order.map((oi,k)=>`<button type="button" class="opt c${k} ${isOX?'big':''}" data-i="${oi}">${esc(q.o[oi])}${isIE?(oi===0?'<br><span style="font-size:15px">우리나라로 들어와요</span>':'<br><span style="font-size:15px">세계로 나가요</span>'):''}</button>`).join('')}</div>
+  </section>`;
+  let done=false;
+  app.querySelectorAll('.opt').forEach(b=>b.onclick=async ()=>{
+    if(done||P.view!=='play') return; done=true;
+    const pick=+b.dataset.i, ok=pick===q.a;
+    app.querySelectorAll('.opt').forEach(x=>{ x.disabled=true; if(+x.dataset.i===q.a) x.classList.add('right'); else x.classList.add('dim'); });
+    B.answer(P.pin,P.id,ok).catch(()=>{});
+    const fb=document.createElement('div');
+    fb.className='fb '+(ok?'good':'bad');
+    fb.innerHTML = ok ? `<strong>정답! 상자를 골라요</strong><span>${esc(q.why)}</span>` : `<strong>아쉬워요 · 정답은 ‘${esc(q.o[q.a])}’</strong><span>${esc(q.why)}</span>`;
+    app.querySelector('.card').appendChild(fb);
+    if(ok){ setTimeout(()=>{ if(P.view==='play') showChests(); }, 900); }
+    else {
+      const nb=document.createElement('div'); nb.className='row';
+      nb.innerHTML='<button class="btn alt" type="button" id="nx">다음 문제 ▶</button>';
+      app.querySelector('.card').appendChild(nb);
+      const nx=$('#nx'); nx.disabled=true; setTimeout(()=>{ if(nx){ nx.disabled=false; nx.focus(); } },1500);
+      nx.onclick=nextQuestion;
+    }
+  });
+}
+
+function showChests(){
+  const picks=[rollChest(),rollChest(),rollChest()];
+  app.innerHTML = `
+  <section class="card">
+    <div class="eyebrow">화물 상자 고르기</div>
+    <h2>세 상자 중 하나를 열어요!</h2>
+    <div class="chests">${picks.map((c,i)=>`<button type="button" class="chest" data-i="${i}"><span class="box" style="--c1:${CHEST_COLORS[i][0]};--c2:${CHEST_COLORS[i][1]}">?</span><span class="res">&nbsp;</span><span class="sub">&nbsp;</span></button>`).join('')}</div>
+    <div id="cres"></div>
+  </section>`;
+  let done=false;
+  app.querySelectorAll('.chest').forEach(btn=>btn.onclick=async ()=>{
+    if(done) return; done=true;
+    const i=+btn.dataset.i;
+    app.querySelectorAll('.chest').forEach((el,k)=>{
+      el.disabled=true; const c=picks[k];
+      el.querySelector('.res').textContent=c.t; el.querySelector('.sub').textContent=c.sub;
+      el.querySelector('.box').textContent = c.k==='lose'?'💥':c.k==='steal'||c.k==='swap'?'🏴':c.k==='mul'?'✨':'📦';
+      el.classList.add(k===i?'picked':'other');
+    });
+    await applyChest(picks[i]);
+  });
+}
+
+async function applyChest(c){
+  const res=$('#cres');
+  const others=P.players.filter(p=>p.id!==P.id);
+  const name=P.me?P.me.name:'';
+  const cont=()=>{ const r=document.createElement('div'); r.className='row'; r.innerHTML='<button class="btn alt" type="button" id="nx">다음 문제 ▶</button>'; res.appendChild(r); $('#nx').focus(); $('#nx').onclick=nextQuestion; };
+  try{
+    if(c.k==='add'){ await B.changeGold(P.pin,P.id,g=>g+c.v); res.innerHTML=`<div class="fb good"><strong>+${c.v} 골드!</strong></div>`; cont(); }
+    else if(c.k==='mul'){
+      const r=await B.changeGold(P.pin,P.id,g=>g>0?g*c.v:20);
+      res.innerHTML=`<div class="fb good"><strong>수출 대박! ${r?r.before+' → '+r.after:''}</strong></div>`; cont();
+      if(r&&r.after>=100) B.addEvent(P.pin,{text:`✨ ${name} 선장이 수출 대박으로 골드 두 배!`}).catch(()=>{});
+    }
+    else if(c.k==='lose'){
+      const r=await B.changeGold(P.pin,P.id,g=>g*(1-c.v));
+      res.innerHTML=`<div class="fb bad"><strong>${esc(c.t)} ${r?'(−'+(r.before-r.after)+')':''}</strong><span>${esc(c.sub)}</span></div>`; cont();
+    }
+    else if(c.k==='steal'||c.k==='swap'){
+      if(!others.length){ await B.changeGold(P.pin,P.id,g=>g+25); res.innerHTML='<div class="fb good"><strong>혼자 항해 중이라 +25 골드!</strong></div>'; cont(); return; }
+      const list=others.slice().sort((a,b)=>(b.gold||0)-(a.gold||0));
+      res.innerHTML=`<div class="fb good"><strong>${c.k==='swap'?'골드를 바꿀 선장을 골라요':'골드 20%를 가져올 선장을 골라요'}</strong></div>
+        <div class="targets">${list.map(p=>`<button type="button" class="target" data-id="${esc(p.id)}"><span class="av">${esc(p.avatar)}</span><span>${esc(p.name)}</span><span class="gd">💰 ${p.gold||0}</span></button>`).join('')}</div>`;
+      let picked=false;
+      res.querySelectorAll('.target').forEach(t=>t.onclick=async ()=>{
+        if(picked) return; picked=true;
+        res.querySelectorAll('.target').forEach(x=>x.disabled=true);
+        const other=list.find(p=>p.id===t.dataset.id);
+        const r=await B.trade(P.pin,P.id,other.id,c.k,c.v);
+        if(!r){ res.innerHTML='<div class="fb bad"><strong>그 선장이 항구를 떠났어요.</strong></div>'; cont(); return; }
+        if(c.k==='swap'){
+          res.innerHTML=`<div class="fb good"><strong>화물선 교환! 이제 ${r.mine} 골드</strong></div>`;
+          B.addEvent(P.pin,{text:`🔄 ${name} 선장이 ${other.name} 선장과 화물선을 바꿨어요!`, to:other.id}).catch(()=>{});
+        } else {
+          res.innerHTML=`<div class="fb good"><strong>중계무역 성공! +${r.amount} 골드</strong><span>중계무역: 물건을 모았다가 다른 나라에 다시 파는 무역 (싱가포르처럼!)</span></div>`;
+          B.addEvent(P.pin,{text:`🏴 ${name} 선장이 ${other.name} 선장에게서 ${r.amount}골드를 가져갔어요!`, to:other.id}).catch(()=>{});
+        }
+        cont();
+      });
+    }
+  }catch(e){ console.error(e); res.innerHTML='<div class="fb bad"><strong>연결이 잠깐 끊겼어요.</strong></div>'; cont(); }
+}
+
+function playerEnd(){
+  P.view='end'; clearTimers(); updateHud(false);
+  const s=P.players.slice().sort((a,b)=>(b.gold||0)-(a.gold||0));
+  const rank=myRank();
+  const msg = rank===1?'오늘의 무역왕 👑': rank<=3?'시상대에 올랐어요!':'끝까지 항해한 멋진 선장!';
+  app.innerHTML = `
+  <section class="card center">
+    <div style="font-size:64px">${esc(P.me?P.me.avatar:'🚢')}</div>
+    <div class="eyebrow">항해 종료</div>
+    <h2>${rank}등 · ${msg}</h2>
+    <div class="goldbig">💰 ${P.me?P.me.gold:0}</div>
+    <p class="lead">정답 ${P.me?P.me.correct||0:0} / ${P.me?P.me.answered||0:0}문제</p>
+    <p class="small">1등 ${s[0]?esc(s[0].avatar+' '+s[0].name)+' ('+(s[0].gold||0)+')':''}</p>
+    <button class="btn ghost" type="button" id="home">처음으로</button>
+  </section>`;
+  $('#home').onclick=landing;
+}
+
+/* ---------------- boot ---------------- */
+(async function boot(){
+  try{ B = hasFirebase ? await makeFirebase() : makeLocal(); }
+  catch(e){ console.error(e); app.innerHTML='<section class="card"><h2>서버에 연결하지 못했어요</h2><p class="lead">인터넷 연결과 Firebase 설정을 확인해 주세요.</p></section>'; return; }
+  if(B.mode==='local') $('#demoBanner').hidden=false;
+  const pin=(params.get('pin')||'').replace(/\D/g,'').slice(0,6);
+  if(pin){
+    const saved=sGet('tradePlayer:'+pin);
+    if(saved){ try{ const me=await B.getPlayer(pin,saved); if(me){ P.pin=pin; P.id=saved; return playerConnect(); } }catch(e){} }
+    return playerJoin(pin);
+  }
+  landing();
+})();
+})();
+</script>
+</body>
+</html>
