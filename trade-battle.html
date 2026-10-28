@@ -193,6 +193,7 @@ function toast(text){
   const t=document.createElement('div'); t.className='toast'; t.textContent=text;
   $('#toastHost').appendChild(t); setTimeout(()=>t.remove(),3800);
 }
+const withTimeout=(pr,ms)=>Promise.race([pr,new Promise((_,rej)=>setTimeout(()=>rej(Object.assign(new Error('timeout'),{code:'timeout'})),ms))]);
 let cleanups=[];
 function clearWatches(){ cleanups.forEach(f=>{try{f();}catch(e){}}); cleanups=[]; }
 let timers=[];
@@ -470,10 +471,21 @@ function hostPlay(){
     </div>
   </section>`;
   let finished=false;
-  const finish=async ()=>{ if(finished) return; finished=true; clearTimers(); await B.updateGame(H.pin,{status:'ended'}); hostEnd(); };
+  const finish=async ()=>{ if(finished) return; finished=true; clearTimers();
+    const board=H.players.slice().sort((a,b)=>(b.gold||0)-(a.gold||0)).slice(0,80).map(p=>({id:p.id,n:p.name,a:p.avatar,g:p.gold||0}));
+    try{ await B.updateGame(H.pin,{status:'ended', board}); }catch(e){ console.error(e); }
+    hostEnd(); };
   timers.push(setInterval(()=>{ const left=end-Date.now(); const el=$('#tm'); if(el) el.textContent=fmtTime(left); if(left<=0) finish(); },250));
   $('#stop').onclick=()=>{ const b=$('#stop'); if(b.dataset.armed) finish(); else { b.dataset.armed='1'; b.textContent='정말 끝낼까요? 한 번 더'; setTimeout(()=>{ if(b){ delete b.dataset.armed; b.textContent='지금 끝내기'; } },3000); } };
+  let lastBoard='';
+  const pushBoard=()=>{
+    const board=H.players.slice().sort((a,b)=>(b.gold||0)-(a.gold||0)).slice(0,80).map(p=>({id:p.id,n:p.name,a:p.avatar,g:p.gold||0}));
+    const key=JSON.stringify(board);
+    if(key===lastBoard) return; lastBoard=key;
+    B.updateGame(H.pin,{board}).catch(e=>console.error(e));
+  };
   cleanups.push(B.watchPlayers(H.pin, list=>{ H.players=list; renderBoard(list); }));
+  timers.push(setInterval(pushBoard,3000));
   cleanups.push(B.watchEvents(H.pin, evs=>{
     const f=$('#feed'); if(!f) return;
     if(!evs.length) return;
@@ -565,7 +577,6 @@ function playerConnect(){
     const old=P.me; P.me=me;
     updateHud(old && old.gold!==me.gold);
   }));
-  cleanups.push(B.watchPlayers(P.pin, list=>{ P.players=list; updateHud(false); }));
   cleanups.push(B.watchEvents(P.pin, evs=>{
     evs.filter(e=>e.to===P.id && e.at>P.lastEvent).reverse().forEach(e=>toast(e.text));
     if(evs.length) P.lastEvent=Math.max(P.lastEvent,...evs.map(e=>e.at||0));
@@ -573,9 +584,12 @@ function playerConnect(){
   cleanups.push(B.watchGame(P.pin, g=>{
     P.game=g;
     if(!g){ return playerJoin('', '게임이 사라졌어요.'); }
+    P.players=(g.board||[]).map(b=>({id:b.id,name:b.n,avatar:b.a,gold:b.g}));
+    updateHud(false);
     if(g.status==='lobby' && P.view!=='wait') playerWait();
     else if(g.status==='playing' && P.view!=='play' && P.view!=='timeup'){
-      const elapsed=Math.min(Math.max(0,Date.now()-(g.startedAt||Date.now())), g.durationMs);
+      let elapsed=Date.now()-(g.startedAt||Date.now());
+      if(elapsed<0 || elapsed>g.durationMs) elapsed=0;
       P.endAt=Date.now()+g.durationMs-elapsed;
       P.deck=shuffle(QS(g.set)); P.qi=0;
       playerPlay();
@@ -590,7 +604,7 @@ function myRank(){
 function updateHud(bump){
   if(!P.me) return;
   const left = P.view==='play' ? `<span class="pill" id="ptm">${fmtTime(P.endAt-Date.now())}</span>` : '';
-  hud(`${left}<span class="pill">${myRank()}등 / ${P.players.length}명</span><span class="pill ${bump?'bump':''}">💰 ${P.me.gold||0}</span>`);
+  hud(`${left}<span class="pill">${myRank()}등 / ${Math.max(1,P.players.length)}명</span><span class="pill ${bump?'bump':''}">💰 ${P.me.gold||0}</span>`);
 }
 
 function playerWait(){
@@ -608,9 +622,7 @@ function playerPlay(){
   P.view='play'; clearTimers();
   timers.push(setInterval(()=>{
     const left=P.endAt-Date.now();
-    const t=$('#ptm'); if(t) t.textContent=fmtTime(left);
-    if(left<=0 && P.view==='play'){ P.view='timeup'; clearTimers(); updateHud(false);
-      app.innerHTML=`<section class="card center"><div style="font-size:64px">⏰</div><h2>시간 종료!</h2><p class="lead">선생님 화면에서 결과를 확인해요.</p><div class="goldbig">💰 ${P.me?P.me.gold:0}</div></section>`; }
+    const t=$('#ptm'); if(t) t.textContent= left>0 ? fmtTime(left) : '곧 끝나요';
   },250));
   nextQuestion();
 }
@@ -635,7 +647,7 @@ function nextQuestion(){
     if(done||P.view!=='play') return; done=true;
     const pick=+b.dataset.i, ok=pick===q.a;
     app.querySelectorAll('.opt').forEach(x=>{ x.disabled=true; if(+x.dataset.i===q.a) x.classList.add('right'); else x.classList.add('dim'); });
-    B.answer(P.pin,P.id,ok).catch(()=>{});
+    withTimeout(B.answer(P.pin,P.id,ok),8000).catch(e=>console.error(e));
     const fb=document.createElement('div');
     fb.className='fb '+(ok?'good':'bad');
     fb.innerHTML = ok ? `<strong>정답! 상자를 골라요</strong><span>${esc(q.why)}</span>` : `<strong>아쉬워요 · 정답은 ‘${esc(q.o[q.a])}’</strong><span>${esc(q.why)}</span>`;
@@ -680,18 +692,18 @@ async function applyChest(c){
   const name=P.me?P.me.name:'';
   const cont=()=>{ const r=document.createElement('div'); r.className='row'; r.innerHTML='<button class="btn alt" type="button" id="nx">다음 문제 ▶</button>'; res.appendChild(r); $('#nx').focus(); $('#nx').onclick=nextQuestion; };
   try{
-    if(c.k==='add'){ await B.changeGold(P.pin,P.id,g=>g+c.v); res.innerHTML=`<div class="fb good"><strong>+${c.v} 골드!</strong></div>`; cont(); }
+    if(c.k==='add'){ await withTimeout(B.changeGold(P.pin,P.id,g=>g+c.v),8000); res.innerHTML=`<div class="fb good"><strong>+${c.v} 골드!</strong></div>`; cont(); }
     else if(c.k==='mul'){
-      const r=await B.changeGold(P.pin,P.id,g=>g>0?g*c.v:20);
+      const r=await withTimeout(B.changeGold(P.pin,P.id,g=>g>0?g*c.v:20),8000);
       res.innerHTML=`<div class="fb good"><strong>수출 대박! ${r?r.before+' → '+r.after:''}</strong></div>`; cont();
       if(r&&r.after>=100) B.addEvent(P.pin,{text:`✨ ${name} 선장이 수출 대박으로 골드 두 배!`}).catch(()=>{});
     }
     else if(c.k==='lose'){
-      const r=await B.changeGold(P.pin,P.id,g=>g*(1-c.v));
+      const r=await withTimeout(B.changeGold(P.pin,P.id,g=>g*(1-c.v)),8000);
       res.innerHTML=`<div class="fb bad"><strong>${esc(c.t)} ${r?'(−'+(r.before-r.after)+')':''}</strong><span>${esc(c.sub)}</span></div>`; cont();
     }
     else if(c.k==='steal'||c.k==='swap'){
-      if(!others.length){ await B.changeGold(P.pin,P.id,g=>g+25); res.innerHTML='<div class="fb good"><strong>혼자 항해 중이라 +25 골드!</strong></div>'; cont(); return; }
+      if(!others.length){ await withTimeout(B.changeGold(P.pin,P.id,g=>g+25),8000); res.innerHTML='<div class="fb good"><strong>혼자 항해 중이라 +25 골드!</strong></div>'; cont(); return; }
       const list=others.slice().sort((a,b)=>(b.gold||0)-(a.gold||0));
       res.innerHTML=`<div class="fb good"><strong>${c.k==='swap'?'골드를 바꿀 선장을 골라요':'골드 20%를 가져올 선장을 골라요'}</strong></div>
         <div class="targets">${list.map(p=>`<button type="button" class="target" data-id="${esc(p.id)}"><span class="av">${esc(p.avatar)}</span><span>${esc(p.name)}</span><span class="gd">💰 ${p.gold||0}</span></button>`).join('')}</div>`;
@@ -700,7 +712,9 @@ async function applyChest(c){
         if(picked) return; picked=true;
         res.querySelectorAll('.target').forEach(x=>x.disabled=true);
         const other=list.find(p=>p.id===t.dataset.id);
-        const r=await B.trade(P.pin,P.id,other.id,c.k,c.v);
+        let r=null;
+        try{ r=await withTimeout(B.trade(P.pin,P.id,other.id,c.k,c.v),8000); }
+        catch(e){ console.error(e); res.innerHTML='<div class="fb bad"><strong>연결이 느려서 거래하지 못했어요.</strong></div>'; cont(); return; }
         if(!r){ res.innerHTML='<div class="fb bad"><strong>그 선장이 항구를 떠났어요.</strong></div>'; cont(); return; }
         if(c.k==='swap'){
           res.innerHTML=`<div class="fb good"><strong>화물선 교환! 이제 ${r.mine} 골드</strong></div>`;
@@ -712,7 +726,7 @@ async function applyChest(c){
         cont();
       });
     }
-  }catch(e){ console.error(e); res.innerHTML='<div class="fb bad"><strong>연결이 잠깐 끊겼어요.</strong></div>'; cont(); }
+  }catch(e){ console.error(e); res.innerHTML='<div class="fb bad"><strong>연결이 잠깐 끊겼어요. 다음 문제로 넘어가요.</strong>'+(e&&e.code==='resource-exhausted'?'<span>오늘 Firebase 무료 사용량을 다 썼어요. 선생님께 알려 주세요.</span>':'')+'</div>'; cont(); }
 }
 
 function playerEnd(){
